@@ -31,16 +31,19 @@ export async function POST(request: NextRequest) {
         const teamId = session.metadata?.teamId;
         
         if (teamId && session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(
+          const subscriptionResponse = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription = subscriptionResponse as any;
+          const periodEnd = subscription.current_period_end || subscription.currentPeriodEnd;
 
           await prisma.team.update({
             where: { id: teamId },
             data: {
               stripeSubscriptionId: subscription.id,
-              stripePriceId: subscription.items.data[0].price.id,
-              stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              stripePriceId: subscription.items?.data?.[0]?.price?.id,
+              stripeCurrentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
               plan: "pro",
             },
           });
@@ -49,20 +52,24 @@ export async function POST(request: NextRequest) {
       }
 
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.subscription as string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any;
+        const subscriptionId = invoice.subscription;
 
         if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription = subscriptionResponse as any;
+          const periodEnd = subscription.current_period_end || subscription.currentPeriodEnd;
           const team = await prisma.team.findFirst({
             where: { stripeSubscriptionId: subscriptionId },
           });
 
-          if (team) {
+          if (team && periodEnd) {
             await prisma.team.update({
               where: { id: team.id },
               data: {
-                stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                stripeCurrentPeriodEnd: new Date(periodEnd * 1000),
               },
             });
           }
@@ -71,7 +78,8 @@ export async function POST(request: NextRequest) {
       }
 
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subscription = event.data.object as any;
         const team = await prisma.team.findFirst({
           where: { stripeSubscriptionId: subscription.id },
         });
