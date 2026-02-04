@@ -189,7 +189,15 @@ export default function HomePage() {
               <span className="font-bold">VibeAnalytics</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 VibeAnalytics. Part of the VibeCaaS family.
+              © 2026 VibeAnalytics powered by{" "}
+              <a href="https://vibecaas.com/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                VibeCaaS.com
+              </a>{" "}
+              a division of{" "}
+              <a href="https://neuralquantum.ai/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                NeuralQuantum.ai LLC
+              </a>
+              . All rights reserved.
             </p>
           </div>
         </div>
